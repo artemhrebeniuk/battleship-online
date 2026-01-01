@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Морський Бій Pro</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="container">
+        <div id="notification-container"></div>
+
+        <h1>⚓ Морський Бій Online</h1>
+
+        <div id="menu-screen">
+            <button id="btn-create">Створити нову гру</button>
+            <div class="join-block">
+                <input type="text" id="room-code-input" placeholder="Код кімнати" maxlength="6" inputmode="numeric">
+                <button id="btn-join">Приєднатися</button>
+            </div>
+        </div>
+
+        <div id="lobby-screen" class="hidden">
+            <h2>Очікування супротивника</h2>
+            <p>Повідомте цей код другу:</p>
+            <span id="display-room-code" class="code-highlight">------</span>
+            <p>Гра розпочнеться автоматично, щойно другий гравець підключиться.</p>
+        </div>
+
+        <div id="setup-screen" class="hidden">
+            <h2>Підготовка флоту</h2>
+            <p id="setup-msg">Розставте кораблі</p>
+            
+            <div class="board-wrapper">
+                <div id="setup-board" class="board"></div>
+            </div>
+
+            <div class="game-controls">
+                <button id="btn-rotate">Повернути (R)</button>
+                <button id="btn-random">Авто-розстановка</button>
+                <button id="btn-start-game" disabled>У БІЙ!</button>
+            </div>
+        </div>
+
+        <div id="game-screen" class="hidden">
+            <h2 id="game-status">Бій почався!</h2>
+            
+            <div class="boards-container">
+                <div class="board-wrapper">
+                    <div class="board-title">Ваш флот</div>
+                    <div id="my-board" class="board"></div>
+                </div>
+                <div class="board-wrapper">
+                    <div class="board-title">Радар (Ворог)</div>
+                    <div id="enemy-board" class="board"></div>
+                </div>
+            </div>
+
+            <div class="game-controls">
+                <button id="btn-leave" class="danger-btn">Здатися та вийти</button>
+            </div>
+        </div>
+        
+        <div id="modal-overlay" class="hidden">
+            <div class="modal-content">
+                <h2 id="modal-title">ГРУ ЗАВЕРШЕНО</h2>
+                <p id="modal-message">Результат</p>
+                <button onclick="location.reload()">У головне меню</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="client.js"></script>
+</body>
+</html>
