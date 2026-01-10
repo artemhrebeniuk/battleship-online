@@ -1,6 +1,6 @@
 const socket = io();
 
-// Елементи DOM
+// DOM Elements
 const screens = {
     menu: document.getElementById('menu-screen'),
     lobby: document.getElementById('lobby-screen'),
@@ -8,17 +8,48 @@ const screens = {
     game: document.getElementById('game-screen')
 };
 
-// Стан гри
+// --- THEME LOGIC ---
+const themeBtn = document.getElementById('btn-theme-toggle');
+const body = document.body;
+
+// Load saved theme
+if (localStorage.getItem('theme') === 'dark') {
+    body.classList.add('dark-mode');
+    themeBtn.innerText = '☀️';
+} else {
+    themeBtn.innerText = '🌙';
+}
+
+themeBtn.addEventListener('click', () => {
+    body.classList.toggle('dark-mode');
+    if (body.classList.contains('dark-mode')) {
+        themeBtn.innerText = '☀️';
+        localStorage.setItem('theme', 'dark');
+    } else {
+        themeBtn.innerText = '🌙';
+        localStorage.setItem('theme', 'light');
+    }
+});
+// -------------------
+
+// Game State
 let currentRoomId = null;
 let myBoard = [];
 let isVertical = false;
 let myTurn = false;
+let isSetupPhase = false;
 
-// Конфігурація кораблів
+// Selection State for Mobile
+let selectedCell = { x: -1, y: -1 };
+
+// Ships Config
 const shipsConfig = [4, 3, 3, 2, 2, 2, 1, 1, 1, 1];
 let shipsToPlace = [];
 
-// === Утиліти та UI ===
+// Values: 0=Unknown, 2=Miss, 3=Hit, 4=Sunk
+let myShotsMap = initBoard(); 
+
+// === Utils & UI ===
 function showScreen(name) {
     Object.values(screens).forEach(s => s.classList.add('hidden'));
     screens[name].classList.remove('hidden');
@@ -32,11 +63,30 @@ function showToast(msg, type = 'info') {
     container.appendChild(toast);
     setTimeout(() => {
         toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-20px)';
         setTimeout(() => toast.remove(), 300);
     }, 3000);
 }
 
-function showModal(title, message) {
+// UPDATED MODAL FUNCTION
+function showModal(type, title, message) {
+    const modalBox = document.getElementById('modal-content-box');
+    const modalIcon = document.getElementById('modal-icon-container');
+    const modalBtn = document.getElementById('modal-btn');
+
+    // Reset classes
+    modalBox.classList.remove('modal-victory', 'modal-defeat');
+    
+    if (type === 'victory') {
+        modalBox.classList.add('modal-victory');
+        modalIcon.innerText = '🏆';
+        modalBtn.className = 'glow-element'; // Greenish styling from css logic or default blue
+    } else {
+        modalBox.classList.add('modal-defeat');
+        modalIcon.innerText = '💀';
+        modalBtn.className = 'danger-btn'; // Red style
+    }
+
     document.getElementById('modal-title').innerText = title;
     document.getElementById('modal-message').innerText = message;
     document.getElementById('modal-overlay').classList.remove('hidden');
@@ -46,7 +96,7 @@ function initBoard() {
     return Array(10).fill().map(() => Array(10).fill(0));
 }
 
-// === Меню та Лобі ===
+// === Menu & Lobby ===
 document.getElementById('btn-create').addEventListener('click', () => {
     socket.emit('createGame');
 });
@@ -56,27 +106,32 @@ document.getElementById('btn-join').addEventListener('click', () => {
     if (code.length === 6) {
         socket.emit('joinGame', code);
     } else {
-        showToast('Введіть коректний код (6 цифр)', 'error');
+        showToast('Please enter a valid 6-digit code', 'error');
     }
+});
+
+document.getElementById('btn-back-menu').addEventListener('click', () => {
+    location.reload();
 });
 
 socket.on('gameCreated', (roomId) => {
     currentRoomId = roomId;
     document.getElementById('display-room-code').innerText = roomId;
     showScreen('lobby');
-    showToast('Гру створено! Чекаємо на гравця.', 'success');
+    showToast('Game created! Waiting for player...', 'success');
 });
 
 socket.on('playerJoined', () => {
     currentRoomId = currentRoomId || document.getElementById('room-code-input').value;
-    showToast('Гравець підключився!', 'success');
+    showToast('Player connected!', 'success');
     startSetupPhase();
 });
 
 socket.on('error', (msg) => showToast(msg, 'error'));
 
-// === Розстановка ===
+// === Setup Phase ===
 function startSetupPhase() {
+    isSetupPhase = true;
     myBoard = initBoard();
     shipsToPlace = [...shipsConfig];
     showScreen('setup');
@@ -90,18 +145,26 @@ function updateSetupStatus() {
     
     if (shipsToPlace.length > 0) {
         const size = shipsToPlace[0];
-        msg.innerText = `Розмістіть корабель: ${size} кл. (${isVertical ? 'Вертикально' : 'Горизонтально'})`;
+        msg.innerText = `Place Ship: Size ${size} (${isVertical ? 'Vertical' : 'Horizontal'})`;
         btn.disabled = true;
+        btn.classList.add('secondary-btn');
     } else {
-        msg.innerText = 'Флот готовий до бою!';
+        msg.innerText = 'Fleet Ready!';
         btn.disabled = false;
+        btn.classList.remove('secondary-btn');
+        btn.innerText = "BATTLE!";
     }
 }
 
 const rotateShip = () => {
     isVertical = !isVertical;
+    if (selectedCell.x !== -1) {
+        clearShipPreview();
+        showShipPreview(selectedCell.x, selectedCell.y);
+    }
     updateSetupStatus();
 };
+
 document.getElementById('btn-rotate').addEventListener('click', rotateShip);
 document.addEventListener('keydown', (e) => {
     if (e.code === 'KeyR' && !screens.setup.classList.contains('hidden')) {
@@ -116,16 +179,30 @@ function renderSetupBoard() {
         for (let x = 0; x < 10; x++) {
             const cell = document.createElement('div');
             cell.className = 'cell';
-            cell.dataset.x = x;
-            cell.dataset.y = y;
             if (myBoard[y][x] === 1) cell.classList.add('ship');
             
-            cell.addEventListener('mouseenter', () => showShipPreview(x, y));
-            cell.addEventListener('mouseleave', () => clearShipPreview());
-            cell.addEventListener('click', () => placeShipManually(x, y));
+            cell.addEventListener('mouseenter', () => {
+                if (selectedCell.x === -1) showShipPreview(x, y);
+            });
+            cell.addEventListener('mouseleave', () => {
+                if (selectedCell.x === -1) clearShipPreview();
+            });
+            cell.addEventListener('click', () => handleSetupClick(x, y));
             
             boardEl.appendChild(cell);
         }
+    }
+}
+
+function handleSetupClick(x, y) {
+    if (selectedCell.x === x && selectedCell.y === y) {
+        placeShipManually(x, y);
+        selectedCell = { x: -1, y: -1 }; 
+        clearShipPreview(); 
+    } else {
+        selectedCell = { x, y };
+        clearShipPreview();
+        showShipPreview(x, y);
     }
 }
 
@@ -134,11 +211,13 @@ function showShipPreview(x, y) {
     const size = shipsToPlace[0];
     const allowed = canPlaceShip(myBoard, x, y, size, isVertical);
     const className = allowed ? 'preview-valid' : 'preview-invalid';
+    
     for (let i = 0; i < size; i++) {
         let cx = x + (isVertical ? 0 : i);
         let cy = y + (isVertical ? i : 0);
         if (cx < 10 && cy < 10) {
-            const cell = document.querySelector(`#setup-board .cell[data-x='${cx}'][data-y='${cy}']`);
+            const index = cy * 10 + cx;
+            const cell = document.getElementById('setup-board').children[index];
             if (cell) cell.classList.add(className);
         }
     }
@@ -157,8 +236,10 @@ function placeShipManually(x, y) {
         shipsToPlace.shift();
         renderSetupBoard();
         updateSetupStatus();
+        if (navigator.vibrate) navigator.vibrate(50);
     } else {
-        showToast('Неможливо поставити корабель тут!', 'error');
+        showToast('Cannot place ship here!', 'error');
+        if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
     }
 }
 
@@ -168,7 +249,9 @@ function canPlaceShip(board, x, y, size, vertical) {
     for (let i = 0; i < size; i++) {
         let cx = x + (vertical ? 0 : i);
         let cy = y + (vertical ? i : 0);
+        
         if (!isValid(cx, cy) || board[cy][cx] !== 0) return false;
+        
         for (let dy = -1; dy <= 1; dy++) {
             for (let dx = -1; dx <= 1; dx++) {
                 let nx = cx + dx, ny = cy + dy;
@@ -207,34 +290,35 @@ document.getElementById('btn-random').addEventListener('click', () => {
 
 document.getElementById('btn-start-game').addEventListener('click', () => {
     socket.emit('playerReady', { roomId: currentRoomId, board: myBoard });
-    document.getElementById('btn-start-game').innerText = 'Чекаємо суперника...';
-    document.getElementById('btn-start-game').disabled = true;
-    document.getElementById('setup-board').style.pointerEvents = 'none';
+    const btn = document.getElementById('btn-start-game');
+    btn.innerText = 'Waiting for opponent...';
+    btn.disabled = true;
+    document.getElementById('setup-board').style.pointerEvents = 'none'; 
 });
 
-// === Гра ===
+// === Game Phase ===
 socket.on('gameStart', ({ turn }) => {
+    isSetupPhase = false;
     showScreen('game');
     myTurn = (turn === socket.id);
     updateGameStatus();
     renderGameBoards();
-    showToast('Бій почався!', 'success');
+    showToast('Battle Started!', 'success');
 });
 
 function updateGameStatus() {
     const statusEl = document.getElementById('game-status');
     if (myTurn) {
-        statusEl.innerText = "ВАШ ХІД! Вогонь!";
+        statusEl.innerText = "YOUR TURN! FIRE!";
         statusEl.style.color = "#28a745";
     } else {
-        statusEl.innerText = "Хід суперника...";
+        statusEl.innerText = "Enemy's Turn...";
         statusEl.style.color = "#dc3545";
     }
 }
 
-let myShotsMap = initBoard();
-
 function renderGameBoards() {
+    // 1. My Board (Defending)
     const myBoardEl = document.getElementById('my-board');
     myBoardEl.innerHTML = '';
     for (let y = 0; y < 10; y++) {
@@ -242,13 +326,17 @@ function renderGameBoards() {
             const cell = document.createElement('div');
             cell.className = 'cell';
             const val = myBoard[y][x];
-            if (val === 1) cell.classList.add('ship'); 
-            if (val === 2) cell.classList.add('miss');
-            if (val === 3) cell.classList.add('hit');
+            
+            if (val === 4) cell.classList.add('sunk');
+            else if (val === 3) cell.classList.add('hit');
+            else if (val === 2) cell.classList.add('miss');
+            else if (val === 1) cell.classList.add('ship');
+            
             myBoardEl.appendChild(cell);
         }
     }
 
+    // 2. Enemy Board (Attacking)
     const enemyBoardEl = document.getElementById('enemy-board');
     enemyBoardEl.innerHTML = '';
     for (let y = 0; y < 10; y++) {
@@ -256,14 +344,16 @@ function renderGameBoards() {
             const cell = document.createElement('div');
             cell.className = 'cell';
             const val = myShotsMap[y][x];
-            if (val === 2) cell.classList.add('miss');
-            if (val === 3) cell.classList.add('hit');
+            
+            if (val === 4) cell.classList.add('sunk');
+            else if (val === 3) cell.classList.add('hit');
+            else if (val === 2) cell.classList.add('miss');
             
             cell.addEventListener('click', () => {
                 if (myTurn && val === 0) {
                     socket.emit('shoot', { roomId: currentRoomId, x, y });
                 } else if (!myTurn) {
-                    showToast('Зараз не ваш хід!', 'error');
+                    showToast('Wait for your turn!', 'error');
                 }
             });
             enemyBoardEl.appendChild(cell);
@@ -274,34 +364,64 @@ function renderGameBoards() {
 socket.on('shotResult', ({ shooter, x, y, hit, nextTurn }) => {
     const isMe = shooter === socket.id;
     if (isMe) {
-        myShotsMap[y][x] = hit ? 3 : 2;
-        if (hit) showToast('Влучив!', 'success');
-        else showToast('Мимо...', 'info');
+        if (myShotsMap[y][x] !== 4) myShotsMap[y][x] = hit ? 3 : 2;
+        
+        if (hit) {
+            showToast('HIT!', 'success');
+            if (navigator.vibrate) navigator.vibrate(100);
+        } else {
+            showToast('Miss...', 'info');
+        }
     } else {
-        myBoard[y][x] = hit ? 3 : 2;
-        if (hit) showToast('У нас влучили!', 'error');
+        if (myBoard[y][x] !== 4) myBoard[y][x] = hit ? 3 : 2;
+        
+        if (hit) {
+            showToast('WE ARE HIT!', 'error');
+            if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+        }
     }
-    renderGameBoards();
     myTurn = (nextTurn === socket.id);
     updateGameStatus();
+    renderGameBoards();
 });
 
-// КІНЕЦЬ ГРИ
+socket.on('shipSunk', ({ victim, shipCoords, surroundCoords }) => {
+    const isMyShipSunk = victim === socket.id;
+    const targetBoard = isMyShipSunk ? myBoard : myShotsMap;
+
+    shipCoords.forEach(({x, y}) => targetBoard[y][x] = 4);
+    surroundCoords.forEach(({x, y}) => {
+        if (targetBoard[y][x] === 0) targetBoard[y][x] = 2;
+    });
+
+    renderGameBoards();
+
+    if (isMyShipSunk) {
+        showToast('Our ship has been destroyed!', 'error');
+        if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    } else {
+        showToast('Enemy ship DESTROYED!', 'success');
+        if (navigator.vibrate) navigator.vibrate([50, 50, 200]);
+    }
+});
+
+// UPDATED GAME OVER HANDLER
 socket.on('gameOver', ({ winner, reason }) => {
-    let title = (winner === socket.id) ? '🏆 ПЕРЕМОГА!' : '💀 ПОРАЗКА!';
-    let msg = (winner === socket.id) ? 'Ви знищили ворожий флот!' : 'Ваш флот потоплено.';
+    const isVictory = winner === socket.id;
+    let title = isVictory ? 'VICTORY!' : 'DEFEAT';
+    let msg = isVictory ? 'You destroyed the enemy fleet!' : 'Your fleet has sunk.';
     
     if (reason === 'disconnect') {
-        msg = (winner === socket.id) 
-            ? 'Супротивник здався або відключився. \nВи перемогли!' 
-            : 'Ви залишили гру.';
+        msg = isVictory 
+            ? 'Opponent surrendered or disconnected. You Win!' 
+            : 'You left the game.';
     }
     
-    showModal(title, msg);
+    showModal(isVictory ? 'victory' : 'defeat', title, msg);
 });
 
 document.getElementById('btn-leave').addEventListener('click', () => {
-    if (confirm('Ви впевнені, що хочете здатися? Це зарахує вам поразку.')) {
+    if (confirm('Are you sure you want to surrender?')) {
         socket.emit('leaveGame', currentRoomId);
     }
 });

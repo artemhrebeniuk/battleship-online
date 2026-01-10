@@ -1,73 +1,83 @@
 <!DOCTYPE html>
-<html lang="uk">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Морський Бій Pro</title>
+    <title>BubbleShip</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚓</text></svg>">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
     <div class="container">
+        <button id="btn-theme-toggle" class="theme-btn">🌙</button>
+
         <div id="notification-container"></div>
 
-        <h1>⚓ Морський Бій Online</h1>
+        <h1>⚓ BubbleShip</h1>
 
         <div id="menu-screen">
-            <button id="btn-create">Створити нову гру</button>
+            <button id="btn-create" class="pulse-btn glow-element">Create New Game</button>
             <div class="join-block">
-                <input type="text" id="room-code-input" placeholder="Код кімнати" maxlength="6" inputmode="numeric">
-                <button id="btn-join">Приєднатися</button>
+                <input type="text" id="room-code-input" placeholder="Room Code" maxlength="6" inputmode="numeric">
+                <button id="btn-join" class="glow-element">Join Game</button>
             </div>
         </div>
 
         <div id="lobby-screen" class="hidden">
-            <h2>Очікування супротивника</h2>
-            <p>Повідомте цей код другу:</p>
-            <span id="display-room-code" class="code-highlight">------</span>
-            <p>Гра розпочнеться автоматично, щойно другий гравець підключиться.</p>
+            <h2>Waiting for opponent...</h2>
+            <p>Share this code with a friend:</p>
+            <span id="display-room-code" class="code-highlight glow-text">------</span>
+            <p>The game will start automatically once player 2 joins.</p>
+            <button id="btn-back-menu" class="secondary-btn" style="margin-top: 30px;">Back to Menu</button>
         </div>
 
         <div id="setup-screen" class="hidden">
-            <h2>Підготовка флоту</h2>
-            <p id="setup-msg">Розставте кораблі</p>
+            <h2>Fleet Preparation</h2>
+            <p id="setup-msg">Place your ships</p>
             
             <div class="board-wrapper">
                 <div id="setup-board" class="board"></div>
             </div>
 
             <div class="game-controls">
-                <button id="btn-rotate">Повернути (R)</button>
-                <button id="btn-random">Авто-розстановка</button>
-                <button id="btn-start-game" disabled>У БІЙ!</button>
+                <button id="btn-rotate">Rotate (R)</button>
+                <button id="btn-random">Auto-Place</button>
+                <button id="btn-start-game" disabled>BATTLE!</button>
             </div>
+            <p class="mobile-hint">Tap a cell to preview, tap again to place.</p>
         </div>
 
         <div id="game-screen" class="hidden">
-            <h2 id="game-status">Бій почався!</h2>
+            <h2 id="game-status" class="glow-text">Battle Started!</h2>
             
             <div class="boards-container">
                 <div class="board-wrapper">
-                    <div class="board-title">Ваш флот</div>
+                    <div class="board-title">Your Fleet</div>
                     <div id="my-board" class="board"></div>
                 </div>
                 <div class="board-wrapper">
-                    <div class="board-title">Радар (Ворог)</div>
+                    <div class="board-title">Radar (Enemy)</div>
                     <div id="enemy-board" class="board"></div>
                 </div>
             </div>
 
             <div class="game-controls">
-                <button id="btn-leave" class="danger-btn">Здатися та вийти</button>
+                <button id="btn-leave" class="danger-btn">Surrender & Exit</button>
             </div>
         </div>
         
         <div id="modal-overlay" class="hidden">
-            <div class="modal-content">
-                <h2 id="modal-title">ГРУ ЗАВЕРШЕНО</h2>
-                <p id="modal-message">Результат</p>
-                <button onclick="location.reload()">У головне меню</button>
+            <div class="modal-content" id="modal-content-box">
+                <div id="modal-icon-container"></div> 
+                <h2 id="modal-title">GAME OVER</h2>
+                <p id="modal-message">Result</p>
+                <button id="modal-btn" onclick="location.reload()" class="glow-element">Main Menu</button>
             </div>
+        </div>
+
+        <div class="footer-credits">
+            Created by <a href="https://t.me/Dev_Bubble" target="_blank">@mr_shpepe</a>
         </div>
     </div>
 
