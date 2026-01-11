@@ -80,11 +80,11 @@ function showModal(type, title, message) {
     if (type === 'victory') {
         modalBox.classList.add('modal-victory');
         modalIcon.innerText = '🏆';
-        modalBtn.className = 'glow-element'; // Greenish styling from css logic or default blue
+        modalBtn.className = 'glow-element'; 
     } else {
         modalBox.classList.add('modal-defeat');
         modalIcon.innerText = '💀';
-        modalBtn.className = 'danger-btn'; // Red style
+        modalBtn.className = 'danger-btn'; 
     }
 
     document.getElementById('modal-title').innerText = title;
@@ -95,6 +95,23 @@ function showModal(type, title, message) {
 function initBoard() {
     return Array(10).fill().map(() => Array(10).fill(0));
 }
+
+// === COPY CODE LOGIC (NEW) ===
+document.getElementById('display-room-code').addEventListener('click', () => {
+    const code = document.getElementById('display-room-code').innerText;
+    // Check if code is valid (not placeholders)
+    if (code && code !== '------') {
+        navigator.clipboard.writeText(code).then(() => {
+            showToast('Code copied to clipboard!', 'success');
+            // Visual feedback
+            const el = document.getElementById('display-room-code');
+            el.style.transform = 'scale(1.1)';
+            setTimeout(() => el.style.transform = 'scale(1)', 200);
+        }).catch(err => {
+            showToast('Failed to copy', 'error');
+        });
+    }
+});
 
 // === Menu & Lobby ===
 document.getElementById('btn-create').addEventListener('click', () => {
@@ -405,7 +422,6 @@ socket.on('shipSunk', ({ victim, shipCoords, surroundCoords }) => {
     }
 });
 
-// UPDATED GAME OVER HANDLER
 socket.on('gameOver', ({ winner, reason }) => {
     const isVictory = winner === socket.id;
     let title = isVictory ? 'VICTORY!' : 'DEFEAT';
