@@ -96,17 +96,16 @@ function initBoard() {
     return Array(10).fill().map(() => Array(10).fill(0));
 }
 
-// === COPY CODE LOGIC (NEW) ===
+// === COPY CODE LOGIC ===
 document.getElementById('display-room-code').addEventListener('click', () => {
-    const code = document.getElementById('display-room-code').innerText;
-    // Check if code is valid (not placeholders)
+    const codeEl = document.getElementById('display-room-code');
+    const code = codeEl.innerText;
+    
     if (code && code !== '------') {
         navigator.clipboard.writeText(code).then(() => {
-            showToast('Code copied to clipboard!', 'success');
-            // Visual feedback
-            const el = document.getElementById('display-room-code');
-            el.style.transform = 'scale(1.1)';
-            setTimeout(() => el.style.transform = 'scale(1)', 200);
+            showToast('Copied to clipboard!', 'success');
+            codeEl.style.transform = 'scale(1.2)';
+            setTimeout(() => codeEl.style.transform = 'scale(1)', 200);
         }).catch(err => {
             showToast('Failed to copy', 'error');
         });
@@ -123,7 +122,7 @@ document.getElementById('btn-join').addEventListener('click', () => {
     if (code.length === 6) {
         socket.emit('joinGame', code);
     } else {
-        showToast('Please enter a valid 6-digit code', 'error');
+        showToast('Enter a valid 6-digit code', 'error');
     }
 });
 
@@ -135,7 +134,7 @@ socket.on('gameCreated', (roomId) => {
     currentRoomId = roomId;
     document.getElementById('display-room-code').innerText = roomId;
     showScreen('lobby');
-    showToast('Game created! Waiting for player...', 'success');
+    showToast('Game created! Waiting...', 'success');
 });
 
 socket.on('playerJoined', () => {
@@ -323,14 +322,18 @@ socket.on('gameStart', ({ turn }) => {
     showToast('Battle Started!', 'success');
 });
 
+// === UPDATED STATUS LOGIC FOR COLORS ===
 function updateGameStatus() {
     const statusEl = document.getElementById('game-status');
+    // Сбрасываем старые классы
+    statusEl.className = ''; 
+    
     if (myTurn) {
         statusEl.innerText = "YOUR TURN! FIRE!";
-        statusEl.style.color = "#28a745";
+        statusEl.classList.add('status-turn-my'); // Green class
     } else {
         statusEl.innerText = "Enemy's Turn...";
-        statusEl.style.color = "#dc3545";
+        statusEl.classList.add('status-turn-enemy'); // Red class
     }
 }
 
