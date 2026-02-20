@@ -458,24 +458,62 @@ input:focus {
 
 /* === MOBILE FIXES (IPHONE) === */
 @media (max-width: 600px) {
-    body { padding: 0; }
+    body { 
+        padding: 0; 
+        align-items: center;
+        justify-content: center;
+    }
     .container {
-        padding: 1.5rem;
+        padding: 1rem;
         padding-bottom: 120px; 
         border-radius: 0;
         box-shadow: none;
         max-width: 100%;
         min-height: 100vh;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: center;
     }
-    h1 { font-size: 1.8rem; margin-top: 15px; }
+    h1 { 
+        font-size: 1.8rem; 
+        margin-top: 15px; 
+        margin-bottom: 1rem;
+    }
     
-    .join-block { width: 100%; }
+    /* Центрирование главного меню */
+    #menu-screen {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 15px;
+    }
+    
+    .join-block { 
+        width: 100%; 
+        max-width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+    }
     .join-block input, 
     .join-block button, 
     #btn-create {
         width: 100%; 
+        max-width: 100%;
         box-sizing: border-box; 
-        margin: 5px 0;
+        margin: 0;
+    }
+    
+    /* Центрирование лобби */
+    #lobby-screen {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
     }
     
     .mobile-hint { display: block; }
@@ -485,15 +523,121 @@ input:focus {
         flex-wrap: wrap;
         justify-content: space-between;
         gap: 10px;
+        margin-top: 15px;
     }
     .game-controls button {
         flex: 1 1 45%;
         padding: 16px;
-        margin: 5px 0;
+        margin: 0;
     }
     
-    .board-wrapper { max-width: 100%; }
     .theme-btn { top: 15px; right: 15px; }
     
     .footer-credits { bottom: 50px; }
+    
+    /* Уменьшение отступов во время игры */
+    #game-screen {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        padding: 0;
+    }
+    
+    #game-screen h2 {
+        font-size: 1.1rem;
+        margin-bottom: 5px;
+        margin-top: 0;
+        padding: 0;
+    }
+    
+    .boards-container {
+        gap: 12px;
+        margin-top: 5px;
+        margin-bottom: 5px;
+        padding: 0;
+        width: 100%;
+    }
+    
+    .board-wrapper {
+        margin-bottom: 0;
+        max-width: 100%;
+        width: calc(100vw - 3rem);
+        min-width: 280px;
+    }
+    
+    .board-title {
+        margin-bottom: 6px;
+        font-size: 0.8rem;
+    }
+    
+    .board {
+        width: 100%;
+        min-width: 280px;
+    }
+    
+    #game-screen .game-controls {
+        margin-top: 8px;
+        margin-bottom: 8px;
+        padding: 0;
+    }
+    
+    #game-screen .game-controls button {
+        padding: 12px;
+        font-size: 0.9rem;
+    }
+    
+    /* Уменьшение отступов в setup-screen */
+    #setup-screen {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        padding: 0;
+    }
+    
+    #setup-screen h2 {
+        font-size: 1.2rem;
+        margin-bottom: 8px;
+        margin-top: 0;
+    }
+    
+    #setup-msg {
+        margin-bottom: 12px;
+        font-size: 0.95rem;
+    }
+    
+    #setup-screen .board-wrapper {
+        margin-bottom: 8px;
+        width: calc(100vw - 2rem);
+        max-width: 100%;
+        min-width: 280px;
+    }
+    
+    #setup-screen .board {
+        width: 100%;
+        min-width: 280px;
+    }
+    
+    #setup-screen .game-controls {
+        margin-top: 12px;
+        margin-bottom: 8px;
+    }
+    
+    /* Центрирование лобби экрана */
+    #lobby-screen h2 {
+        margin-bottom: 10px;
+        margin-top: 0;
+    }
+    
+    #lobby-screen p {
+        margin: 8px 0;
+    }
+    
+    .code-highlight {
+        margin: 15px 0;
+        font-size: 2rem;
+    }
 }
